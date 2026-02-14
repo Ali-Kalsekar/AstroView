@@ -189,6 +189,7 @@ export default function App() {
   const [telescopeFeedStatus, setTelescopeFeedStatus] = useState("Idle");
   const [telescopeFeedUpdatedAt, setTelescopeFeedUpdatedAt] = useState(null);
   const [telescopeFeedError, setTelescopeFeedError] = useState("");
+  const [telescopeFeedMode, setTelescopeFeedMode] = useState("live");
   const [feedback, setFeedback] = useState(null);
   const [apodSummary, setApodSummary] = useState("");
   const [apodSummaryStatus, setApodSummaryStatus] = useState("idle");
@@ -582,8 +583,9 @@ export default function App() {
     return url;
   };
 
-  const fetchLatestFromTelescopeSite = async (baseUrl, fallbackLabel) => {
-    const listRes = await fetch(`${baseUrl}/api/v3/images?page=1`);
+  const fetchLatestFromTelescopeSite = async (baseUrl, proxyBase, fallbackLabel) => {
+    const listUrl = proxyBase ? `${proxyBase}/api/v3/images?page=1` : `${baseUrl}/api/v3/images?page=1`;
+    const listRes = await fetch(listUrl);
     if (!listRes.ok) throw new Error("Telescope feed request failed");
     const list = await listRes.json();
     const candidates = Array.isArray(list) ? list : [];
@@ -595,7 +597,10 @@ export default function App() {
           new Date(a.publication_date).getTime()
       )[0] || candidates[0];
     if (!latest?.id) return null;
-    const detailRes = await fetch(`${baseUrl}/api/v3/image/${latest.id}`);
+    const detailUrl = proxyBase
+      ? `${proxyBase}/api/v3/image/${latest.id}`
+      : `${baseUrl}/api/v3/image/${latest.id}`;
+    const detailRes = await fetch(detailUrl);
     if (!detailRes.ok) throw new Error("Telescope detail request failed");
     const detail = await detailRes.json();
     const files = Array.isArray(detail?.image_files) ? detail.image_files : [];
@@ -1625,6 +1630,11 @@ export default function App() {
                       </button>
                     </div>
                   </div>
+                  {telescopeFeedError && (
+                    <div className="mb-3 text-[11px] text-amber-100">
+                      {telescopeFeedError}
+                    </div>
+                  )}
                   {activeTelescopeFeed?.image ? (
                     <div className="rounded-2xl overflow-hidden border border-white/10">
                       <img
